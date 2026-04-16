@@ -1,0 +1,9 @@
+.venv
+.env
+*.db
+__pycache__
+*.pyc
+.git
+.gitignore
+README.md
+edu_chat_be.egg-info

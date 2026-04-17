@@ -136,7 +136,7 @@ async def refresh(body: RefreshRequest, db: AsyncSession = Depends(get_db)):
             detail="Refresh token has been revoked",
         )
 
-    if db_token.expires_at < datetime.now(timezone.utc):
+    if db_token.expires_at.replace(tzinfo=timezone.utc) < datetime.now(timezone.utc):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Refresh token expired",
@@ -182,12 +182,12 @@ async def logout(body: LogoutRequest, db: AsyncSession = Depends(get_db)):
     return {"message": "Logged out successfully"}
 
 
-@router.get("/gen-token", include_in_schema=False)
-async def gen_token(request: Request):
+@router.get("/gen-google-auth", include_in_schema=False)
+async def gen_google_auth(request: Request):
     if not settings.debug:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
 
-    redirect_uri = str(request.base_url) + "auth/gen-token/callback"
+    redirect_uri = str(request.base_url) + "auth/gen-google-auth/callback"
     google_auth_url = (
         "https://accounts.google.com/o/oauth2/v2/auth?"
         + f"client_id={settings.google_client_id}"
@@ -200,12 +200,12 @@ async def gen_token(request: Request):
     return RedirectResponse(google_auth_url)
 
 
-@router.get("/gen-token/callback", include_in_schema=False)
-async def gen_token_callback(request: Request, code: str):
+@router.get("/gen-google-auth/callback", include_in_schema=False)
+async def gen_google_auth_callback(request: Request, code: str):
     if not settings.debug:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
 
-    redirect_uri = str(request.base_url) + "auth/gen-token/callback"
+    redirect_uri = str(request.base_url) + "auth/gen-google-auth/callback"
 
     async with httpx.AsyncClient() as client:
         resp = await client.post(
@@ -247,3 +247,54 @@ async def gen_token_callback(request: Request, code: str):
 </div>
 </body></html>"""
     return HTMLResponse(html)
+
+
+@router.get("/gen-token", include_in_schema=False)
+async def gen_test_token(db: AsyncSession = Depends(get_db)):
+    if not settings.debug:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+
+    test_google_id = "test-local-user"
+    test_email = "test@local.dev"
+    test_name = "Test User"
+
+    stmt = insert(User).values(
+        google_id=test_google_id,
+        email=test_email,
+        name=test_name,
+        picture_url=None,
+    )
+    stmt = stmt.on_conflict_do_update(
+        index_elements=["google_id"],
+        set_={
+            "email": test_email,
+            "name": test_name,
+            "updated_at": datetime.now(timezone.utc),
+        },
+    )
+    await db.execute(stmt)
+    await db.commit()
+
+    result = await db.execute(select(User).where(User.google_id == test_google_id))
+    user = result.scalar_one()
+
+    access_token = create_access_token(user.id)
+    refresh_token, _ = create_refresh_token(user.id)
+    refresh_expire = datetime.now(timezone.utc) + timedelta(
+        days=settings.refresh_token_expire_days
+    )
+
+    db_token = RefreshToken(
+        token_hash=hash_token(refresh_token),
+        user_id=user.id,
+        expires_at=refresh_expire,
+    )
+    db.add(db_token)
+    await db.commit()
+
+    return TokenResponse(
+        access_token=access_token,
+        refresh_token=refresh_token,
+        expires_in=settings.access_token_expire_minutes * 60,
+        user=user,
+    )

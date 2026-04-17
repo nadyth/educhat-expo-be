@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     debug: bool = False
     ollama_endpoint: str = ""
     ollama_api_key: str = ""
+    tunnel: bool = False
 
     model_config = {"env_file": ".env"}
 

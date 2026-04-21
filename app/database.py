@@ -14,7 +14,7 @@ engine = create_async_engine(
 
 @event.listens_for(engine.sync_engine, "connect")
 def _register_vector(dbapi_conn, connection_record):
-    from pgvector.sqlalchemy import register_vector
+    from pgvector.asyncpg import register_vector
     register_vector(dbapi_conn)
 
 

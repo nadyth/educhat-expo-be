@@ -1,4 +1,5 @@
 import hashlib
+import uuid
 from datetime import datetime, timedelta, timezone
 
 import httpx
@@ -7,7 +8,7 @@ import jwt as pyjwt
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy import select
-from sqlalchemy.dialects.sqlite import insert
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
@@ -145,7 +146,7 @@ async def refresh(body: RefreshRequest, db: AsyncSession = Depends(get_db)):
     # Rotate: revoke old, issue new
     db_token.revoked = True
 
-    user_id = int(payload["sub"])
+    user_id = uuid.UUID(payload["sub"])
     access_token = create_access_token(user_id)
     new_refresh_token, _ = create_refresh_token(user_id)
     refresh_expire = datetime.now(timezone.utc) + timedelta(

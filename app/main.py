@@ -3,14 +3,12 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.database import Base, engine
-from app.routers import auth, ollama, users
+from app.database import engine
+from app.routers import auth, explain, files, ollama, study_configs, users
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
     yield
     await engine.dispose()
 
@@ -26,6 +24,9 @@ app.add_middleware(
 app.include_router(auth.router, prefix="/auth", tags=["auth"])
 app.include_router(users.router, prefix="/users", tags=["users"])
 app.include_router(ollama.router, prefix="/ollama", tags=["ollama"])
+app.include_router(files.router, prefix="/files", tags=["files"])
+app.include_router(study_configs.router, prefix="/files", tags=["study-configs"])
+app.include_router(explain.router, prefix="/files", tags=["explain"])
 
 
 def _start_tunnel(port: int):

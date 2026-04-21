@@ -1,3 +1,5 @@
+import uuid
+
 import jwt
 from datetime import datetime, timedelta, timezone
 from uuid import uuid4
@@ -7,7 +9,7 @@ from app.config import settings
 ALGORITHM = "HS256"
 
 
-def create_access_token(user_id: int) -> str:
+def create_access_token(user_id: uuid.UUID) -> str:
     expire = datetime.now(timezone.utc) + timedelta(minutes=settings.access_token_expire_minutes)
     payload = {
         "sub": str(user_id),
@@ -18,7 +20,7 @@ def create_access_token(user_id: int) -> str:
     return jwt.encode(payload, settings.secret_key, algorithm=ALGORITHM)
 
 
-def create_refresh_token(user_id: int) -> tuple[str, str]:
+def create_refresh_token(user_id: uuid.UUID) -> tuple[str, str]:
     jti = str(uuid4())
     expire = datetime.now(timezone.utc) + timedelta(days=settings.refresh_token_expire_days)
     payload = {

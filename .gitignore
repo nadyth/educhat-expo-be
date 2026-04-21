@@ -14,3 +14,5 @@ wheels/
 
 # Database
 *.db
+.ignore/
+./postgres_data

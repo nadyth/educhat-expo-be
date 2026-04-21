@@ -1,10 +1,11 @@
+import uuid
 from datetime import datetime
 
 from pydantic import BaseModel
 
 
 class UserOut(BaseModel):
-    id: int
+    id: uuid.UUID
     google_id: str
     email: str
     name: str | None

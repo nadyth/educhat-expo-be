@@ -6,9 +6,7 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: edu_chat
     volumes:
-      - pg-data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
+      - ./postgres_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
@@ -19,8 +17,6 @@ services:
     build:
       context: .
       target: development
-      args:
-        TARGETARCH: ${TARGETARCH:-arm64}
     ports:
       - "18000:8000"
     env_file: .env
@@ -36,6 +32,3 @@ services:
       postgres:
         condition: service_healthy
     restart: unless-stopped
-
-volumes:
-  pg-data:
